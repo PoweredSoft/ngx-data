@@ -3,5 +3,4 @@
  */
 
 export * from './lib/ngx-data.service';
-export * from './lib/ngx-data.component';
 export * from './lib/ngx-data.module';

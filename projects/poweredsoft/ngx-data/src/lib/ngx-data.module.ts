@@ -1,12 +1,11 @@
 import { NgModule } from '@angular/core';
-import { NgxDataComponent } from './ngx-data.component';
 
 
 
 @NgModule({
-  declarations: [NgxDataComponent],
+  declarations: [],
   imports: [
   ],
-  exports: [NgxDataComponent]
+  exports: [],
 })
 export class NgxDataModule { }
