@@ -4,7 +4,7 @@
   "peerDependencies": {
     "@angular/common": "^8.2.4",
     "@angular/core": "^8.2.4",
-    "@poweredsoft/data": "^0.0.14",
+    "@poweredsoft/data": "^0.0.25",
     "rxjs": "^6.5.3"
   }
 }
