@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { IDataSourceTransportOptions, IDataSourceCommandAdapterOptions, IDataSourceOptions, IResolveCommandModelEvent } from '@poweredsoft/data';
+import { IDataSourceTransportOptions, IDataSourceCommandAdapterOptions, IDataSourceOptions, IResolveCommandModelEvent, IDataSourceError, IDataSourceErrorMessage, IDataSourceValidationError } from '@poweredsoft/data';
 import { IQueryExecutionResult, IQueryExecutionGroupResult, IQueryCriteria } from '@poweredsoft/data';
 import { IDataSourceQueryAdapterOptions } from '@poweredsoft/data';
 import { catchError} from 'rxjs/operators';
@@ -16,13 +16,42 @@ export class GenericRestDataSourceService
 
     }
 
-    private _handleErrorPipe(err: HttpErrorResponse) : Observable<any> {
-        // is it a validation error
-        // is it something I can display nicely with a message
-        // unexpected message...
+    private _handleErrorPipe(err: HttpErrorResponse) : Observable<IDataSourceError> {
+        console.log(typeof(err.error), err);
 
-        return throwError({
+        if (err.status == 500) {
+            return throwError(<IDataSourceErrorMessage>{
+                type: 'message',
+                message: 'An unexpected error has occured'
+            });
+        }
 
+        if (typeof(err.error) == "object") {
+            // if status not okay then its an exception error
+            if (err.error.hasOwnProperty('Message') && typeof(err.error['Message']) == "string") {
+                return throwError(<IDataSourceErrorMessage>{
+                    type: 'message',
+                    message: err.error['Message']
+                });
+            }
+
+            return throwError(<IDataSourceValidationError>{
+                type: 'validation',
+                errors: err.error
+            });
+        }
+
+        // general error message
+        if (typeof(err.error) == "string") {
+            return throwError(<IDataSourceErrorMessage>{
+                type: 'message',
+                message: err.error
+            });
+        }
+
+        return throwError(<IDataSourceErrorMessage>{
+            type: 'message',
+            message: 'An unexpected error has occured'
         });
     }
 
