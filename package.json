@@ -7,7 +7,9 @@
     "build": "ng build",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e"
+    "e2e": "ng e2e",
+    "build-lib": "ng build @poweredsoft/ngx-data",
+    "publish-lib": "npm publish dist/poweredsoft/ngx-data"
   },
   "private": true,
   "dependencies": {
