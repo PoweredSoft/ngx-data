@@ -25,6 +25,12 @@
       ],
       "@poweredsoft/ngx-data/*": [
         "dist/poweredsoft/ngx-data/*"
+      ],
+      "@poweredsoft/ngx-data-apollo": [
+        "dist/poweredsoft/ngx-data-apollo"
+      ],
+      "@poweredsoft/ngx-data-apollo/*": [
+        "dist/poweredsoft/ngx-data-apollo/*"
       ]
     }
   },

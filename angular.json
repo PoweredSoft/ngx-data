@@ -159,6 +159,41 @@
           }
         }
       }
+    },
+    "@poweredsoft/ngx-data-apollo": {
+      "projectType": "library",
+      "root": "projects/poweredsoft/ngx-data-apollo",
+      "sourceRoot": "projects/poweredsoft/ngx-data-apollo/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-ng-packagr:build",
+          "options": {
+            "tsConfig": "projects/poweredsoft/ngx-data-apollo/tsconfig.lib.json",
+            "project": "projects/poweredsoft/ngx-data-apollo/ng-package.json"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/poweredsoft/ngx-data-apollo/src/test.ts",
+            "tsConfig": "projects/poweredsoft/ngx-data-apollo/tsconfig.spec.json",
+            "karmaConfig": "projects/poweredsoft/ngx-data-apollo/karma.conf.js"
+          }
+        },
+        "lint": {
+          "builder": "@angular-devkit/build-angular:tslint",
+          "options": {
+            "tsConfig": [
+              "projects/poweredsoft/ngx-data-apollo/tsconfig.lib.json",
+              "projects/poweredsoft/ngx-data-apollo/tsconfig.spec.json"
+            ],
+            "exclude": [
+              "**/node_modules/**"
+            ]
+          }
+        }
+      }
     }},
   "defaultProject": "ngx-data"
 }

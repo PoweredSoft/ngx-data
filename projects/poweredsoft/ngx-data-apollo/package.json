@@ -1,0 +1,15 @@
+{
+  "name": "@poweredsoft/ngx-data-apollo",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@poweredsoft/data": "^0.0.26",
+    "@angular/common": "^8.2.4",
+    "@angular/core": "^8.2.4",
+    "apollo-angular-link-http": "^1.9.0",
+    "apollo-link": "^1.2.11",
+    "apollo-client": "^2.6.0",
+    "apollo-cache-inmemory": "^1.6.0",
+    "graphql-tag": "^2.10.0",
+    "graphql": "^14.5.0"
+  }
+}

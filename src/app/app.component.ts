@@ -2,6 +2,14 @@ import { Component, OnInit } from '@angular/core';
 import { GenericRestDataSourceService } from 'projects/poweredsoft/ngx-data/src/public-api';
 import { of } from 'rxjs';
 import { DataSource } from '@poweredsoft/data';
+import { GraphQLDataSourceService } from 'projects/poweredsoft/ngx-data-apollo/src/public-api';
+
+
+export interface IContact {
+  id: number;
+  firstName :string;
+  lastName: string;
+}
 
 export interface ICustomerModel {
   id: number;
@@ -18,7 +26,7 @@ export class AppComponent implements OnInit {
   title = 'ngx-data';
   dataSource: DataSource<ICustomerModel>;
 
-  constructor(genericService: GenericRestDataSourceService) {
+  constructor(genericService: GenericRestDataSourceService, private graphQLService: GraphQLDataSourceService) {
     const keyResolver = (model: ICustomerModel) => model.id;
 
     const transportOptions = genericService.createStandardRestTransportOptions('api/customer', keyResolver);
@@ -67,5 +75,30 @@ export class AppComponent implements OnInit {
     }, error => {
       //console.log(error);
     });
+  }
+
+  testGraphQL() {
+    const builder = this.graphQLService.createDataSourceOptionsBuilder<IContact, number>(
+      'contacts',
+      'GraphQLAdvanceQueryOfContactModelInput',
+      'id firstName lastName',
+      (m) => m.id,
+      {
+        aggregates: [
+          {
+            path: 'id',
+            type: 'Max'
+          }
+        ]
+      }
+    );
+
+    const dataSourceOptions = builder.create();
+    const dataSource = new DataSource<IContact>(dataSourceOptions);
+    
+    const subscription = dataSource.data$.subscribe(contacts => {
+      console.log(contacts);
+    });
+    dataSource.refresh();
   }
 }
