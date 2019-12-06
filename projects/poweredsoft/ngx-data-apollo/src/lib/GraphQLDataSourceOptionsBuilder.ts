@@ -1,6 +1,6 @@
-import { IDataSourceOptions, IQueryCriteria, IDataSourceTransportOptions, IDataSourceQueryAdapterOptions, IDataSourceCommandAdapterOptions, IAdvanceQueryAdapter, IFilter, IAggregate, ISort, IGroup, ISimpleFilter, ICompositeFilter, IQueryExecutionGroupResult, IQueryExecutionResult, IAggregateResult } from '@poweredsoft/data';
+import { IDataSourceOptions, IQueryCriteria, IDataSourceTransportOptions, IDataSourceQueryAdapterOptions, IDataSourceCommandAdapterOptions, IAdvanceQueryAdapter, IFilter, IAggregate, ISort, IGroup, ISimpleFilter, ICompositeFilter, IQueryExecutionGroupResult, IQueryExecutionResult, IAggregateResult, IGroupQueryResult } from '@poweredsoft/data';
 import { Apollo } from 'apollo-angular';
-import { IGraphQLAdvanceQueryResult, IGraphQLAdvanceQueryInput, IGraphQLAdvanceQueryFilterInput, IGraphQLAdvanceQueryAggregateInput, IGraphQLAdvanceQuerySortInput, IGraphQLAdvanceQueryGroupInput, FilterType, IGraphQLAdvanceQueryAggregateResult, IGraphQLVariantResult, AggregateType } from './models';
+import { IGraphQLAdvanceQueryResult, IGraphQLAdvanceQueryInput, IGraphQLAdvanceQueryFilterInput, IGraphQLAdvanceQueryAggregateInput, IGraphQLAdvanceQuerySortInput, IGraphQLAdvanceQueryGroupInput, FilterType, IGraphQLAdvanceQueryAggregateResult, IGraphQLVariantResult, AggregateType, IGraphQLAdvanceGroupResult } from './models';
 import gql from 'graphql-tag';
 import { DocumentNode } from 'graphql';
 import { map, catchError } from 'rxjs/operators';
@@ -63,17 +63,28 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
         return ret;
     }
     private queryResultFromGraphQLAdvancedResult(query: IQueryCriteria, result: IGraphQLAdvanceQueryResult<TModel>): IQueryExecutionResult<TModel> | IQueryExecutionGroupResult<TModel> {
-        if (query.groups && query.groups.length) {
-            throw 'todo';
-        }
-        const ret: IQueryExecutionResult<TModel> = {
+ 
+        const ret: IQueryExecutionGroupResult<TModel> & IQueryExecutionResult<TModel> = {
             data: result.data,
+            groups: result.groups ? result.groups.map(this.fromGraphQLGroupResult.bind(this)) : null,
             totalRecords: result.totalRecords,
             numberOfPages: result.numberOfPages,
             aggregates: result.aggregates ? result.aggregates.map(this.fromGraphQLAggregateResult.bind(this)) : null
         };
         return ret;
     }
+
+    private fromGraphQLGroupResult(group: IGraphQLAdvanceGroupResult<TModel>) : IGroupQueryResult<TModel> {
+        return {
+            aggregates: group.aggregates ? group.aggregates.map(this.convertAggregates.bind(this)) : null,
+            data: group.data,
+            groupPath: group.groupPath,
+            groupValue: this.getValueFromVariantResult(group.groupValue),
+            hasSubGroups: group.hasSubGroups,
+            subGroups: group.subGroups ? group.subGroups.map(this.fromGraphQLGroupResult.bind(this)) : null
+        };
+    }
+
     private fromGraphQLAggregateResult(agg: IGraphQLAdvanceQueryAggregateResult): IAggregateResult {
         return {
             path: agg.path,
@@ -135,14 +146,7 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
                     type
                     path
                     value {
-                        booleanValue
-                        dateTimeValue
-                        decimalValue
-                        intValue
-                        json
-                        longValue
-                        stringValue
-                        typeName
+                        ${this.createSelectVariant()}
                     }
                 }
             `;
@@ -174,10 +178,53 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
         return this;
     }
 
+    private createGroupSelect(query: IQueryCriteria, group: IGroup, isLast: boolean) {
+        let ret = `
+            groupPath
+            groupValue {
+                ${this.createSelectVariant()}
+            }
+            hasSubGroups
+            ${this.createAggregateSelect(query)}
+        `;
+
+        if (isLast) {
+            ret += `
+                data {
+                    ${this.querySelect}
+                }
+            `;
+        } else {
+            ret += `
+                subGroups {
+                    ___INNER___
+                }
+            `;
+        }
+
+        return ret;
+    }
+
+    private createSelectVariant() {
+        return `booleanValue dateTimeValue decimalValue intValue json longValue stringValue typeName`;   
+    }
+
     private createQuerySelect(query: IQueryCriteria): string {
         if (query.groups && query.groups.length) {
-            throw 'todo';
+            
+            const groupSelect = query.groups.reduce((prev, current, currentIndex) => {
+                const isLast = currentIndex+1 == query.groups.length;
+                const group = this.createGroupSelect(query, current, isLast);
+                return prev.replace('___INNER___', group);
+            }, `
+                groups { 
+                    ___INNER___ 
+                } 
+            `);
+
+            return groupSelect;
         }
+
         return `
             data {
                 ${this.querySelect}

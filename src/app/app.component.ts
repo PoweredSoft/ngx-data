@@ -84,6 +84,11 @@ export class AppComponent implements OnInit {
       'id firstName lastName',
       (m) => m.id,
       {
+        groups: [
+          {
+            path: 'sex'
+          }
+        ],
         aggregates: [
           {
             path: 'id',

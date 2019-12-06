@@ -85,10 +85,19 @@ export interface IGraphQLAdvanceQueryInput<T> {
     sorts?: IGraphQLAdvanceQuerySortInput[]
 }
 
+export interface  IGraphQLAdvanceGroupResult<T> {
+    aggregates?: IGraphQLAdvanceQueryAggregateResult[]
+    data?: T[]
+    groupPath?: string
+    groupValue?: IGraphQLVariantResult
+    hasSubGroups?: boolean
+    subGroups?: IGraphQLAdvanceGroupResult<T>[]
+}
+
 export interface IGraphQLAdvanceQueryResult<T> {
     aggregates?: IGraphQLAdvanceQueryAggregateResult[];
     data?: T[];
-    groups?: IGraphQLAdvanceQueryResult<T>[];
+    groups?: IGraphQLAdvanceGroupResult<T>[];
     numberOfPages?: number;
     totalRecords: number;
 }
