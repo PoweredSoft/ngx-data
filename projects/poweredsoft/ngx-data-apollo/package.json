@@ -1,6 +1,6 @@
 {
   "name": "@poweredsoft/ngx-data-apollo",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "peerDependencies": {
     "@poweredsoft/data": "^0.0.26",
     "@angular/common": "^8.2.4",
