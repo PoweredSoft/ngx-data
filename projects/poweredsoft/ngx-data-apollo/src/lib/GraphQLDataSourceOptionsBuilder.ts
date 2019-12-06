@@ -40,6 +40,7 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
         let ret: IDataSourceQueryAdapterOptions<TModel> = {
             adapter: <IAdvanceQueryAdapter<IQueryCriteria, TModel>>{
                 handle: (query: IQueryCriteria) => {
+                    
                     const advanceQuery = this.createGraphQLQueryCriteria(query);
                     const o$ = this.apollo.query<any>({
                         query: this.createGraphQLQuery(query),
@@ -47,14 +48,11 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
                             criteria: advanceQuery
                         }
                     });
+                    
                     return o$.pipe(
                         map(result => {
                             const queryResult = result.data[this.queryName] as IGraphQLAdvanceQueryResult<TModel>;
                             return this.queryResultFromGraphQLAdvancedResult(query, queryResult);
-                        }),
-                        catchError(err => {
-                            console.error(err);
-                            return err;
                         })
                     );
                 }
