@@ -1,24 +1,32 @@
-import { IDataSourceOptions, IQueryCriteria, IDataSourceTransportOptions, IDataSourceQueryAdapterOptions, IDataSourceCommandAdapterOptions, IAdvanceQueryAdapter, IFilter, IAggregate, ISort, IGroup, ISimpleFilter, ICompositeFilter, IQueryExecutionGroupResult, IQueryExecutionResult, IAggregateResult, IGroupQueryResult } from '@poweredsoft/data';
+import { IDataSourceOptions, IQueryCriteria, IDataSourceTransportOptions, IDataSourceQueryAdapterOptions, IDataSourceCommandAdapterOptions, IAdvanceQueryAdapter, IFilter, IAggregate, ISort, IGroup, ISimpleFilter, ICompositeFilter, IQueryExecutionGroupResult, IQueryExecutionResult, IAggregateResult, IGroupQueryResult, IResolveCommandModelEvent, IDataSourceErrorMessage, IDataSourceValidationError } from '@poweredsoft/data';
 import { Apollo } from 'apollo-angular';
 import { IGraphQLAdvanceQueryResult, IGraphQLAdvanceQueryInput, IGraphQLAdvanceQueryFilterInput, IGraphQLAdvanceQueryAggregateInput, IGraphQLAdvanceQuerySortInput, IGraphQLAdvanceQueryGroupInput, FilterType, IGraphQLAdvanceQueryAggregateResult, IGraphQLVariantResult, AggregateType, IGraphQLAdvanceGroupResult } from './models';
 import gql from 'graphql-tag';
-import { DocumentNode } from 'graphql';
-import { map, catchError } from 'rxjs/operators';
-import { Observable } from 'rxjs';
+import { DocumentNode, GraphQLError } from 'graphql';
+import { map, catchError, switchMap } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+import { FetchResult } from 'apollo-link';
+import { of } from 'zen-observable';
+import { ApolloError } from 'apollo-client';
 
 export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
-
-    private _commands: { [key: string] : IDataSourceCommandAdapterOptions<any> };
+    querySelect: string;
+    private _commands: { [key: string] : IDataSourceCommandAdapterOptions<any> } = {};
 
     constructor(private apollo: Apollo, 
         private queryName: string, 
         private queryInputName: string, 
-        private querySelect: string, 
+        querySelect: string | string[], 
         private keyResolver: (model: TModel) => TKey, 
         private defaultCriteria: IQueryCriteria, 
         private manageNotificationMessage: boolean) 
     {
+        if (Array.isArray(querySelect))
+            this.querySelect = querySelect.join(' ');
+        else
+            this.querySelect = querySelect;
     }
+    
     create(): IDataSourceOptions<TModel> {
         let ret: IDataSourceOptions<TModel> = {
             resolveIdField: this.keyResolver,
@@ -28,6 +36,7 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
         };
         return ret;
     }
+
     protected createTransport(): IDataSourceTransportOptions<TModel> {
         let ret: IDataSourceTransportOptions<TModel> = {
             query: this.createQuery(),
@@ -122,6 +131,7 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
 
         return null;
     }
+    
     private createGraphQLQuery(query: IQueryCriteria): DocumentNode {
         return gql`
             query getAll($criteria: ${this.queryInputName}) {
@@ -163,14 +173,63 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
             groups: query.groups ? query.groups.map(this.convertGroup.bind(this)) : null
         };
         return ret;
+    
     }
-
-    public addMutation<TMutation, TMutationResult>(name: string, handle: (command: TMutation) => Observable<TMutationResult>) {
-
-        this._commands[name] = <IDataSourceCommandAdapterOptions<TMutation>> {
+        
+    /*public addMutationTest<TMutation, TMutationResult>(name: string, mutationName: string, mutationSelect?: string, resolveCommandModel?: (event: IResolveCommandModelEvent<TModel>) => Observable<TMutation & any>) {
+        this._commands[name] = <IDataSourceCommandAdapterOptions<TModel>> {
             adapter: {
-                handle: handle
-            }
+                handle: this.apollo.use()
+            },
+            resolveCommandModel: resolveCommandModel
+        };
+
+        return this;
+    }*/
+
+    public addMutation<TMutation, TMutationResult>(name: string, mutationName: string, handle: (command: TMutation) => Observable<FetchResult<TMutationResult>>, resolveCommandModel?: (event: IResolveCommandModelEvent<TModel>) => Observable<TMutation & any>) {
+        const handleWrapper = command => {
+            return handle(command)
+                .pipe(
+                    map(result => {
+                        return result.data[mutationName];
+                    }),
+                    catchError((error: any) => {
+                        // should handle bad request with exception
+                        // should handle bad request with validation
+                        // should handle forbidden result 403
+                        // should handle not authorized result 401
+
+                        const apolloError : ApolloError = error;
+                        if (!apolloError.networkError) {
+                            const validationError = apolloError.graphQLErrors.find(t => t.extensions.code == 'ValidationError');
+                            if (validationError) {
+                                const extensions = validationError.extensions;
+                                const result = Object.keys(extensions).filter(t => t != 'code').reduce((prev, attributeName) => {
+                                    prev[attributeName] = extensions[attributeName];
+                                    return prev;
+                                }, {});
+
+                                return throwError(<IDataSourceValidationError>{
+                                    type: 'validation',
+                                    errors: result
+                                });
+                            }
+                        }
+
+                        return throwError(<IDataSourceErrorMessage>{
+                            type: 'message',
+                            message: apolloError.message
+                        });
+                    })
+                );
+        };
+        
+        this._commands[name] = <IDataSourceCommandAdapterOptions<TModel>> {
+            adapter: {
+                handle: handleWrapper
+            },
+            resolveCommandModel: resolveCommandModel
         };
 
         return this;

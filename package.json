@@ -8,8 +8,10 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
-    "build-lib": "ng build @poweredsoft/ngx-data",
-    "publish-lib": "npm publish dist/poweredsoft/ngx-data"
+    "build-data": "ng build @poweredsoft/ngx-data",
+    "build-apollo": "ng build @poweredsoft/ngx-data-apollo",
+    "publish-data": "npm publish dist/poweredsoft/ngx-data",
+    "publish-apollo": "npm publish dist/poweredsoft/ngx-data-apollo"
   },
   "private": true,
   "dependencies": {
