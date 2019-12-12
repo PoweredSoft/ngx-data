@@ -55,16 +55,16 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.dataSource.notifyMessage$.subscribe((notification) => {
-      console.log(notification);
+      //console.log(notification);
     });
 
     this.dataSource.validationError$.subscribe((notification) => {
-      console.log(notification);
+      //console.log(notification);
     });
   }
 
   onCreate(): void {
-    console.log('excuting command!');
+    //console.log('excuting command!');
     this.dataSource.executeCommandByName('create', {
       firstName: "",
       lastName: "Baba"
@@ -76,7 +76,7 @@ export class AppComponent implements OnInit {
   }
 
   onDelete(): void {
-    console.log('excuting command!');
+    //console.log('excuting command!');
     this.dataSource.executeCommandByName('delete', {
       id: 1
     }).subscribe(() => {

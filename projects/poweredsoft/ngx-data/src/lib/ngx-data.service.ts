@@ -17,7 +17,7 @@ export class GenericRestDataSourceService
     }
 
     private _handleErrorPipe(err: HttpErrorResponse) : Observable<IDataSourceError> {
-        console.log(typeof(err.error), err);
+        //console.log(typeof(err.error), err);
 
         if (err.status == 500) {
             return throwError(<IDataSourceErrorMessage>{

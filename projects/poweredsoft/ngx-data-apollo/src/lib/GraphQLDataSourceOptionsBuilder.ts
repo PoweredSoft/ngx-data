@@ -55,7 +55,8 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
                         query: this.createGraphQLQuery(query),
                         variables: {
                             criteria: advanceQuery
-                        }
+                        },
+                        fetchPolicy: 'no-cache'
                     });
                     
                     return o$.pipe(
