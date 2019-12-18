@@ -2,11 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { GenericRestDataSourceService } from 'projects/poweredsoft/ngx-data/src/public-api';
 import { of, Observable } from 'rxjs';
 import { DataSource, IResolveCommandModelEvent } from '@poweredsoft/data';
-import { GraphQLDataSourceService } from 'projects/poweredsoft/ngx-data-apollo/src/public-api';
+import {  } from 'projects/poweredsoft/ngx-data-apollo/src/public-api';
 import { Apollo } from 'apollo-angular';
 import gql from 'graphql-tag';
 import { map } from 'rxjs/operators';
 import { DocumentNode } from 'graphql';
+import { GraphQLDataSourceService, IGraphQLAdvanceQueryInput } from 'projects/poweredsoft/ngx-data-apollo/src/public-api';
 
 
 export interface IContact {
@@ -15,7 +16,7 @@ export interface IContact {
   lastName: string;
 }
 
-export interface ICustomerModel {
+export interface IContactModel {
   id: number;
   firstName: string;
   lastName: string;
@@ -26,6 +27,11 @@ export interface IFooCommand {
   comment: string;
 }
 
+export interface IContactDetailQuery extends IGraphQLAdvanceQueryInput<IContactModel>
+{
+  sex?: string;
+}
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -33,14 +39,14 @@ export interface IFooCommand {
 })
 export class AppComponent implements OnInit {
   title = 'ngx-data';
-  dataSource: DataSource<ICustomerModel>;
+  dataSource: DataSource<IContactModel>;
 
   constructor(genericService: GenericRestDataSourceService, private apollo: Apollo, private graphQLService: GraphQLDataSourceService) {
-    const keyResolver = (model: ICustomerModel) => model.id;
+    const keyResolver = (model: IContactModel) => model.id;
 
     const transportOptions = genericService.createStandardRestTransportOptions('api/customer', keyResolver);
 
-    this.dataSource = new DataSource<ICustomerModel>({
+    this.dataSource = new DataSource<IContactModel>({
       resolveIdField: keyResolver,
       transport: transportOptions,
       defaultCriteria: {
@@ -151,17 +157,13 @@ export class AppComponent implements OnInit {
   }
 
   testGraphQL() {
+
     const builder = this.graphQLService.createDataSourceOptionsBuilder<IContact, number>(
       'contacts',
-      'GraphQLAdvanceQueryOfContactModelInput',
+      'ContactDetailQueryInput',
       'id firstName lastName',
       (m) => m.id,
       {
-        groups: [
-          {
-            path: 'sex'
-          }
-        ],
         aggregates: [
           {
             path: 'id',
@@ -170,6 +172,10 @@ export class AppComponent implements OnInit {
         ]
       }
     );
+
+    builder.beforeRead<IContactDetailQuery>(query => {
+      return of({ ...query, sex: "Male"});
+    });
 
     const dataSourceOptions = builder.create();
     const dataSource = new DataSource<IContact>(dataSourceOptions);

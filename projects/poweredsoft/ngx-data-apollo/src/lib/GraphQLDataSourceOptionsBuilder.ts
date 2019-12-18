@@ -4,14 +4,17 @@ import { IGraphQLAdvanceQueryResult, IGraphQLAdvanceQueryInput, IGraphQLAdvanceQ
 import gql from 'graphql-tag';
 import { DocumentNode, GraphQLError } from 'graphql';
 import { map, catchError, switchMap } from 'rxjs/operators';
-import { Observable, throwError } from 'rxjs';
+import { Observable, throwError, of } from 'rxjs';
 import { FetchResult } from 'apollo-link';
-import { of } from 'zen-observable';
 import { ApolloError } from 'apollo-client';
 
+
 export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
+
+    private _commands: { [key: string] : IDataSourceCommandAdapterOptions<any> };
+    private _beforeRead: (TQuery: IGraphQLAdvanceQueryInput<TModel>) => Observable<IGraphQLAdvanceQueryInput<TModel>>;
+
     querySelect: string;
-    private _commands: { [key: string] : IDataSourceCommandAdapterOptions<any> } = {};
 
     constructor(private apollo: Apollo, 
         private queryName: string, 
@@ -44,33 +47,45 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
         };
         return ret;
     }
+
+    public beforeRead<TAdvanceQuery extends IGraphQLAdvanceQueryInput<TModel>>(beforeRead: (query: TAdvanceQuery) => Observable<TAdvanceQuery>)
+    {
+        this._beforeRead = beforeRead;
+        return this._beforeRead;
+    }
     
     protected createQuery(): IDataSourceQueryAdapterOptions<TModel> {
         let ret: IDataSourceQueryAdapterOptions<TModel> = {
             adapter: <IAdvanceQueryAdapter<IQueryCriteria, TModel>>{
                 handle: (query: IQueryCriteria) => {
-                    
-                    const advanceQuery = this.createGraphQLQueryCriteria(query);
-                    const o$ = this.apollo.query<any>({
-                        query: this.createGraphQLQuery(query),
-                        variables: {
-                            criteria: advanceQuery
-                        },
-                        fetchPolicy: 'no-cache'
-                    });
-                    
-                    return o$.pipe(
-                        map(result => {
-                            const queryResult = result.data[this.queryName] as IGraphQLAdvanceQueryResult<TModel>;
-                            return this.queryResultFromGraphQLAdvancedResult(query, queryResult);
-                        })
-                    );
+
+                    const finalBeforeRead = this._beforeRead || (t => of(t));
+                    const advanceQuery = this.createGraphQLQueryCriteria(query);             
+                    return finalBeforeRead(advanceQuery)
+                        .pipe(
+                            switchMap(finalAdvanceQuery => {
+                                const o$ = this.apollo.query<any>({
+                                    query: this.createGraphQLQuery(finalAdvanceQuery),
+                                    variables: {
+                                        criteria: finalAdvanceQuery
+                                    }
+                                });
+                                
+                                return o$.pipe(
+                                    map(result => {
+                                        const queryResult = result.data[this.queryName] as IGraphQLAdvanceQueryResult<TModel>;
+                                        return this.queryResultFromGraphQLAdvancedResult(finalAdvanceQuery, queryResult);
+                                    })
+                                );
+                            })
+                        );          
                 }
             }
         };
         return ret;
     }
-    private queryResultFromGraphQLAdvancedResult(query: IQueryCriteria, result: IGraphQLAdvanceQueryResult<TModel>): IQueryExecutionResult<TModel> | IQueryExecutionGroupResult<TModel> {
+    
+    private queryResultFromGraphQLAdvancedResult(query: IGraphQLAdvanceQueryInput<TModel>, result: IGraphQLAdvanceQueryResult<TModel>): IQueryExecutionResult<TModel> | IQueryExecutionGroupResult<TModel> {
  
         const ret: IQueryExecutionGroupResult<TModel> & IQueryExecutionResult<TModel> = {
             data: result.data,
@@ -132,8 +147,8 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
 
         return null;
     }
-    
-    private createGraphQLQuery(query: IQueryCriteria): DocumentNode {
+
+    private createGraphQLQuery(query: IGraphQLAdvanceQueryInput<TModel>): DocumentNode {
         return gql`
             query getAll($criteria: ${this.queryInputName}) {
                 ${this.queryName}(params: $criteria) {
@@ -146,7 +161,7 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
         `;
     }
 
-    private createAggregateSelect(query: IQueryCriteria): any {
+    private createAggregateSelect(query: IGraphQLAdvanceQueryInput<TModel>): any {
 
         if (query.aggregates && query.aggregates.length) 
         {
@@ -236,7 +251,7 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
         return this;
     }
 
-    private createGroupSelect(query: IQueryCriteria, group: IGroup, isLast: boolean) {
+    private createGroupSelect(query: IGraphQLAdvanceQueryInput<TModel>, group: IGroup, isLast: boolean) {
         let ret = `
             groupPath
             groupValue {
@@ -267,7 +282,7 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
         return `booleanValue dateTimeValue decimalValue intValue json longValue stringValue typeName`;   
     }
 
-    private createQuerySelect(query: IQueryCriteria): string {
+    private createQuerySelect(query: IGraphQLAdvanceQueryInput<TModel>): string {
         if (query.groups && query.groups.length) {
             
             const groupSelect = query.groups.reduce((prev, current, currentIndex) => {
