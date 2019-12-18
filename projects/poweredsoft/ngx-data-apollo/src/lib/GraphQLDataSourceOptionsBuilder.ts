@@ -11,7 +11,7 @@ import { ApolloError } from 'apollo-client';
 
 export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
 
-    private _commands: { [key: string] : IDataSourceCommandAdapterOptions<any> };
+    private _commands: { [key: string] : IDataSourceCommandAdapterOptions<any> } = {};
     private _beforeRead: (TQuery: IGraphQLAdvanceQueryInput<TModel>) => Observable<IGraphQLAdvanceQueryInput<TModel>>;
 
     querySelect: string;
