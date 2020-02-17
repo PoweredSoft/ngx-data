@@ -15,11 +15,14 @@ export class GraphQLDataSourceService
     createDataSourceOptionsBuilder<TModel, TKey>(
         queryName: string, 
         queryInputName: string,
-        querySelect: string,
+        querySelect: string | string[],
         keyResolver: (model: TModel) => TKey, 
         defaultCriteria: IQueryCriteria,
         manageNotificationMessage: boolean = true) : GraphQLDataSourceOptionsBuilder<TModel, TKey>
     {
+        if (Array.isArray(querySelect))
+            querySelect = querySelect.join(' ');
+
         return new GraphQLDataSourceOptionsBuilder(
             this.apollo, 
             queryName,
