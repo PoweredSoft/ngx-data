@@ -208,16 +208,17 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
                     map(result => {
                         return result.data[mutationName];
                     }),
-                    catchError((error: any) => {
+                    catchError((error: ApolloError) => {
                         console.log(error);
                         // should handle bad request with exception
                         // should handle bad request with validation
                         // should handle forbidden result 403
                         // should handle not authorized result 401
 
-                        const apolloError : ApolloError = error;
-                        if (!apolloError.networkError) {
-                            const validationError = apolloError.graphQLErrors.find(t => t.extensions.code == 'ValidationError');
+                        if (!error.networkError) {
+                            const validationError = error.graphQLErrors.find(t => t.extensions.code == 'ValidationError');
+                            const authenticationError = error.graphQLErrors.find(t => t.extensions.code == 'AuthenticationError');
+
                             if (validationError) {
                                 const extensions = validationError.extensions;
                                 const result = Object.keys(extensions).filter(t => t != 'code').reduce((prev, attributeName) => {
@@ -225,16 +226,24 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
                                     return prev;
                                 }, {});
 
+                                console.log('error result', result);
+
                                 return throwError(<IDataSourceValidationError>{
                                     type: 'validation',
                                     errors: result
+                                });
+                            }
+                            else if (authenticationError) {
+                                return throwError(<IDataSourceErrorMessage>{
+                                    type: 'message',
+                                    message: "Unauthorized"
                                 });
                             }
                         }
 
                         return throwError(<IDataSourceErrorMessage>{
                             type: 'message',
-                            message: apolloError.message
+                            message: error.message
                         });
                     })
                 );

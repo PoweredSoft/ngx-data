@@ -8,6 +8,7 @@ import gql from 'graphql-tag';
 import { map } from 'rxjs/operators';
 import { DocumentNode } from 'graphql';
 import { GraphQLDataSourceService, IGraphQLAdvanceQueryInput } from 'projects/poweredsoft/ngx-data-apollo/src/public-api';
+import { TestService, ITestModel, IValidationTestCommand } from './services/test.service';
 
 
 export interface IContact {
@@ -39,150 +40,32 @@ export interface IContactDetailQuery extends IGraphQLAdvanceQueryInput<IContactM
 })
 export class AppComponent implements OnInit {
   title = 'ngx-data';
-  dataSource: DataSource<IContactModel>;
+  dataSource: DataSource<ITestModel>;
 
-  constructor(genericService: GenericRestDataSourceService, private apollo: Apollo, private graphQLService: GraphQLDataSourceService) {
-    const keyResolver = (model: IContactModel) => model.id;
-
-    const transportOptions = genericService.createStandardRestTransportOptions('api/customer', keyResolver);
-
-    this.dataSource = new DataSource<IContactModel>({
-      resolveIdField: keyResolver,
-      transport: transportOptions,
-      defaultCriteria: {
+  constructor(private testService: TestService) {
+    this.dataSource = testService.generateDatasource({
+      criteria: {
         page: 1,
-        pageSize: 5,
-        groups: [
-          { path: 'lastName' }
-        ]
+        pageSize: 10
       }
     });
   }
 
   ngOnInit(): void {
     this.dataSource.notifyMessage$.subscribe((notification) => {
-      //console.log(notification);
+      console.log('notifcation', notification);
     });
 
     this.dataSource.validationError$.subscribe((notification) => {
-      //console.log(notification);
+      console.log('error', notification);
     });
   }
 
-  onCreate(): void {
-    //console.log('excuting command!');
-    this.dataSource.executeCommandByName('create', {
-      firstName: "",
-      lastName: "Baba"
-    }).subscribe(() => {
-
-    }, error => {
-      //console.log(error);
-    });
-  }
-
-  onDelete(): void {
-    //console.log('excuting command!');
-    this.dataSource.executeCommandByName('delete', {
-      id: 1
-    }).subscribe(() => {
-
-    }, error => {
-      //console.log(error);
-    });
-  }
-
-  testGraphQLMutation() {
-    const builder = this.graphQLService.createDataSourceOptionsBuilder<IContact, number>(
-      'contacts',
-      'GraphQLAdvanceQueryOfContactModelInput',
-      'id firstName lastName',
-      (m) => m.id,
-      {
-        groups: [
-          {
-            path: 'sex'
-          }
-        ],
-        aggregates: [
-          {
-            path: 'id',
-            type: 'Max'
-          }
-        ]
-      }
-    );
-
-    builder.addMutation<IFooCommand, string>('create', 'foo', (command) => {
-      return this.apollo.mutate<string>({
-          mutation: gql`mutation executeFoo($command: FooCommandInput) {
-            foo(params: $command)
-          }`,
-          variables: {
-            command: command
-          }
-        });
-    },
-    (event) => {
-      console.log(event);
-      if (event.model.id)
-
-      return of({
-        firstName: 'hello world'
-      });
-    });
-
-    const dataSourceOptions = builder.create();
-    const dataSource = new DataSource<IContact>(dataSourceOptions);
-    let event: IResolveCommandModelEvent<IContact> = {
-      command: 'create',
-      model: {
-        id: 1,
-        firstName: 'hello',
-        lastName: 'world'
-      }
-    };
-
-    dataSource.resolveCommandModelByName(event)
-      .subscribe((result) => {
-        console.log('resolve result', result);
-      });
-
-    dataSource.executeCommandByName('create', {
-      amount: 0,
-      //comment: "hello"
+  testValidation() {
+    this.dataSource.executeCommandByName<IValidationTestCommand, string>('validationTest', {
+      value: 'test'
     }).subscribe((result) => {
       console.log(result);
-    })
-  }
-
-  testGraphQL() {
-
-    const builder = this.graphQLService.createDataSourceOptionsBuilder<IContact, number>(
-      'contacts',
-      'ContactDetailQueryInput',
-      'id firstName lastName',
-      (m) => m.id,
-      {
-        aggregates: [
-          {
-            path: 'id',
-            type: 'Max'
-          }
-        ]
-      }
-    );
-
-    builder.beforeRead<IContactDetailQuery>(query => {
-      return of({ ...query, sex: "Male"});
     });
-
-    const dataSourceOptions = builder.create();
-    const dataSource = new DataSource<IContact>(dataSourceOptions);
-    
-    const subscription = dataSource.data$.subscribe(contacts => {
-      console.log(contacts);
-    });
-    dataSource.refresh();
   }
 }
