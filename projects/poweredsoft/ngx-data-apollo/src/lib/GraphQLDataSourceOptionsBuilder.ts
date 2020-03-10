@@ -8,9 +8,7 @@ import { Observable, throwError, of } from 'rxjs';
 import { FetchResult } from 'apollo-link';
 import { ApolloError } from 'apollo-client';
 
-
 export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
-
     private _commands: { [key: string] : IDataSourceCommandAdapterOptions<any> } = {};
     private _beforeRead: (TQuery: IGraphQLAdvanceQueryInput<TModel>) => Observable<IGraphQLAdvanceQueryInput<TModel>>;
 
@@ -211,6 +209,7 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
                         return result.data[mutationName];
                     }),
                     catchError((error: any) => {
+                        console.log(error);
                         // should handle bad request with exception
                         // should handle bad request with validation
                         // should handle forbidden result 403
