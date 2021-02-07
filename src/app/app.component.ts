@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { GenericRestDataSourceService } from 'projects/poweredsoft/ngx-data/src/public-api';
 import { of, Observable } from 'rxjs';
-import { DataSource, IResolveCommandModelEvent } from '@poweredsoft/data';
+import { DataSource, IDataSource, IResolveCommandModelEvent } from '@poweredsoft/data';
 import {  } from 'projects/poweredsoft/ngx-data-apollo/src/public-api';
 import { Apollo } from 'apollo-angular';
 import gql from 'graphql-tag';
@@ -9,28 +9,21 @@ import { map } from 'rxjs/operators';
 import { DocumentNode } from 'graphql';
 import { GraphQLDataSourceService, IGraphQLAdvanceQueryInput } from 'projects/poweredsoft/ngx-data-apollo/src/public-api';
 import { TestService, ITestModel, IValidationTestCommand } from './services/test.service';
+import { HttpDataSourceService} from '@poweredsoft/ngx-data';
 
-
-export interface IContact {
-  id: number;
-  firstName :string;
-  lastName: string;
-}
-
-export interface IContactModel {
-  id: number;
-  firstName: string;
-  lastName: string;
-}
-
-export interface IFooCommand {
-  amount: number;
-  comment: string;
-}
-
-export interface IContactDetailQuery extends IGraphQLAdvanceQueryInput<IContactModel>
+export class IContact 
 {
-  sex?: string;
+  id: number
+  displayName: string
+}
+
+export interface ICreatePerson {
+  firstName: string
+  lastName: string
+}
+
+export interface IEchoCommand {
+  message: string
 }
 
 @Component({
@@ -40,32 +33,49 @@ export interface IContactDetailQuery extends IGraphQLAdvanceQueryInput<IContactM
 })
 export class AppComponent implements OnInit {
   title = 'ngx-data';
-  dataSource: DataSource<ITestModel>;
+  dataSource: IDataSource<IContact>;
+  latestData: any;
 
-  constructor(private testService: TestService) {
-    this.dataSource = testService.generateDatasource({
-      criteria: {
+  constructor(private hdss: HttpDataSourceService) {
+    const ds = hdss
+      .builder<IContact, number>()
+      .keyResolver(m => m.id)
+      .defaultCriteria({
         page: 1,
-        pageSize: 10
-      }
-    });
+        pageSize: 5
+      })
+      .queryUrl('https://localhost:5001/api/query/contacts')
+      .addCommandByUrl<ICreatePerson, void>("createPerson", 'https://localhost:5001/api/command/createPerson', 
+        e => {
+        return of (<ICreatePerson>{
+          firstName: '',
+          lastName: ''
+        })
+      })
+      .addCommandByUrl<IEchoCommand, string>('echo', 'https://localhost:5001/api/command/echo')
+      .createDataSource();
+
+      this.dataSource = ds;
   }
 
   ngOnInit(): void {
-    this.dataSource.notifyMessage$.subscribe((notification) => {
-      console.log('notifcation', notification);
-    });
 
-    this.dataSource.validationError$.subscribe((notification) => {
-      console.log('error', notification);
+    this.dataSource.data$.subscribe(newData => {
+      this.latestData = newData;
     });
   }
 
-  testValidation() {
-    this.dataSource.executeCommandByName<IValidationTestCommand, string>('validationTest', {
-      value: 'test'
-    }).subscribe((result) => {
-      console.log(result);
-    });
+  refresh() {
+    this.dataSource.refresh();
+  }
+
+  echoCommand() {
+    const message = prompt('What message you wish to echo? ');
+    this.dataSource.executeCommandByName<IEchoCommand, string>('echo', {
+      message: message
+    }).subscribe(
+      commandResult => alert(commandResult),
+      err => console.log(err)
+      );
   }
 }

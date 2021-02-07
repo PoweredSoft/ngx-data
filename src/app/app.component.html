@@ -1,3 +1,13 @@
-<button class="ui button" (click)="testValidation()">
-  Test Validation
+<button class="ui button" (click)="refresh()">
+  refresh
 </button>
+
+<button class="ui button" (click)="echoCommand()">
+  echo command
+</button>
+
+<h4>Latest Data</h4>
+<hr>
+<pre>
+  {{ latestData | json }}
+</pre>
