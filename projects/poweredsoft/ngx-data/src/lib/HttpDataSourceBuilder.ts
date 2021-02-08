@@ -112,7 +112,7 @@ export class HttpDataSourceOptionsBuilder<TModel, TKey> {
 
             return throwError(<IDataSourceValidationError>{
                 type: 'validation',
-                errors: err.error
+                errors: err.error.errors
             });
         }
 
