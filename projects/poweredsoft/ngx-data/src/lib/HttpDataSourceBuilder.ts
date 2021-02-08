@@ -101,7 +101,14 @@ export class HttpDataSourceOptionsBuilder<TModel, TKey> {
             });
         }
 
-        if (typeof(err.error) == "object") {
+        if (err.status == 400) 
+        {
+            if (err.error && err.error.errors)
+                return throwError(<IDataSourceValidationError>{
+                    type: 'validation',
+                    errors: err.error.errors
+                });
+
             // if status not okay then its an exception error
             if (err.error.hasOwnProperty('Message') && typeof(err.error['Message']) == "string") {
                 return throwError(<IDataSourceErrorMessage>{
@@ -109,11 +116,6 @@ export class HttpDataSourceOptionsBuilder<TModel, TKey> {
                     message: err.error['Message']
                 });
             }
-
-            return throwError(<IDataSourceValidationError>{
-                type: 'validation',
-                errors: err.error.errors
-            });
         }
 
         // general error message
