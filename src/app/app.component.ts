@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { GenericRestDataSourceService } from 'projects/poweredsoft/ngx-data/src/public-api';
 import { of, Observable } from 'rxjs';
-import { DataSource, IDataSource, IResolveCommandModelEvent } from '@poweredsoft/data';
+import { DataSource, IDataSource, IQueryCriteria, IResolveCommandModelEvent } from '@poweredsoft/data';
 import {  } from 'projects/poweredsoft/ngx-data-apollo/src/public-api';
 import { Apollo } from 'apollo-angular';
 import gql from 'graphql-tag';
@@ -26,6 +26,12 @@ export interface IEchoCommand {
   message: string
 }
 
+export interface IMyQuery extends IQueryCriteria{
+  params: {
+    showDisabled: boolean
+  }
+}
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -43,6 +49,12 @@ export class AppComponent implements OnInit {
       .defaultCriteria({
         page: 1,
         pageSize: 5
+      })
+      .beforeRead<IMyQuery>(q => {
+        q.params = { 
+          showDisabled: true
+        };
+        return of(q);
       })
       .queryUrl('https://localhost:5001/api/query/contacts')
       .addCommandByUrl<ICreatePerson, void>("createPerson", 'https://localhost:5001/api/command/createPerson', 
