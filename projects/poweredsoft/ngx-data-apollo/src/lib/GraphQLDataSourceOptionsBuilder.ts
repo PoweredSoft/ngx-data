@@ -32,7 +32,6 @@ export class GraphQLDataSourceOptionsBuilder<TModel, TKey> {
         let ret: IDataSourceOptions<TModel> = {
             resolveIdField: this.keyResolver,
             defaultCriteria: this.defaultCriteria,
-            manageNotificationMessage: this.manageNotificationMessage,
             transport: this.createTransport()
         };
         return ret;
