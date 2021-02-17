@@ -12,7 +12,6 @@ export class HttpDataSourceOptionsBuilder<TModel, TKey> {
     private _keyResolver: (model: TModel) => TKey;
     private _defaultCriteria: IQueryCriteria;
     private _query: IDataSourceQueryAdapterOptions<TModel>;
-    private _manageNotificationMessage: boolean = false;
 
     constructor(private http: HttpClient) {
 
@@ -22,15 +21,9 @@ export class HttpDataSourceOptionsBuilder<TModel, TKey> {
         let ret: IDataSourceOptions<TModel> = {
             resolveIdField: this._keyResolver,
             defaultCriteria: this._defaultCriteria,
-            manageNotificationMessage: this._manageNotificationMessage,
             transport: this.createTransport()
         };
         return ret;
-    }
-
-    manageNotificationMessage(shouldManage: boolean) {
-        this._manageNotificationMessage = shouldManage;
-        return this;
     }
 
     createDataSource() : IDataSource<TModel>{
@@ -147,9 +140,15 @@ export class HttpDataSourceOptionsBuilder<TModel, TKey> {
         return this;
     }
 
-    public addCommandByUrl<TCommand, TCommandResult>(name: string, url: string, resolveCommandModel?: (event: IResolveCommandModelEvent<TModel>) => Observable<TCommand & any>) {
+    public addCommandByUrl<TCommand, TCommandResult>(name: string, url: string, resolveCommandModel?: (event: IResolveCommandModelEvent<TModel>) => Observable<TCommand & any>, beforeCommand?: (command: TCommand) => Observable<TCommand>) {
         const handleWrapper = command => {
-            return this.http.post<TCommandResult>(url, command).pipe(catchError(this._handleErrorPipe));
+            const finalBeforeCommand = beforeCommand || (_ => of(command));
+            return finalBeforeCommand(command)
+                .pipe(
+                    switchMap(finalCommand => {
+                        return this.http.post<TCommandResult>(url, finalCommand).pipe(catchError(this._handleErrorPipe));
+                    })
+                );
         };
         
         this._commands[name] = <IDataSourceCommandAdapterOptions<TModel>> {

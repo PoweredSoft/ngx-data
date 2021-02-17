@@ -62,7 +62,6 @@ export class GenericRestDataSourceService
         const dataSourceOptions: IDataSourceOptions<TModel> = {
             defaultCriteria: defaultCriteria,
             resolveIdField: keyResolver,
-            manageNotificationMessage: manageNotificationMessage,
             transport: dataSourceTransportOptions
         };
 
