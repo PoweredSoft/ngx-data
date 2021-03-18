@@ -17,16 +17,22 @@ export class GenericRestDataSourceService
     }
 
     private _handleErrorPipe(err: HttpErrorResponse) : Observable<IDataSourceError> {
-        //console.log(typeof(err.error), err);
-
+        
         if (err.status == 500) {
             return throwError(<IDataSourceErrorMessage>{
                 type: 'message',
-                message: 'An unexpected error has occured'
+                message: 'UNEXPECTED_ERROR_MESSAGE'
             });
         }
 
-        if (typeof(err.error) == "object") {
+        if (err.status == 400) 
+        {
+            if (err.error && err.error.errors)
+                return throwError(<IDataSourceValidationError>{
+                    type: 'validation',
+                    errors: err.error.errors
+                });
+
             // if status not okay then its an exception error
             if (err.error.hasOwnProperty('Message') && typeof(err.error['Message']) == "string") {
                 return throwError(<IDataSourceErrorMessage>{
@@ -34,11 +40,6 @@ export class GenericRestDataSourceService
                     message: err.error['Message']
                 });
             }
-
-            return throwError(<IDataSourceValidationError>{
-                type: 'validation',
-                errors: err.error
-            });
         }
 
         // general error message
@@ -51,7 +52,7 @@ export class GenericRestDataSourceService
 
         return throwError(<IDataSourceErrorMessage>{
             type: 'message',
-            message: 'An unexpected error has occured'
+            message: 'UNEXPECTED_ERROR_MESSAGE'
         });
     }
 
