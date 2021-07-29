@@ -75,6 +75,11 @@ export class AppComponent implements OnInit {
     this.dataSource.data$.subscribe(newData => {
       this.latestData = newData;
     });
+
+    this.dataSource.notifyMessage$.subscribe(message => {
+      if (message.type == 'error')
+        alert(message.message);
+    });
   }
 
   refresh() {
