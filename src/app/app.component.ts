@@ -11,10 +11,16 @@ import { GraphQLDataSourceService, IGraphQLAdvanceQueryInput } from 'projects/po
 import { TestService, ITestModel, IValidationTestCommand } from './services/test.service';
 import { HttpDataSourceService} from '@poweredsoft/ngx-data';
 
-export class IContact 
+export interface IContact 
 {
   id: number
   displayName: string
+}
+
+export interface IPerson {
+  id: number,
+  firstName: string,
+  lastName: string
 }
 
 export interface ICreatePerson {
@@ -32,6 +38,14 @@ export interface IMyQuery extends IQueryCriteria{
   }
 }
 
+export interface IOnePersonQuery {
+  personId: number
+}
+
+export interface IListPersonQuery {
+  search?: string
+}
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -42,7 +56,33 @@ export class AppComponent implements OnInit {
   dataSource: IDataSource<IContact>;
   latestData: any;
 
+  onePersonDs: IDataSource<IPerson>;
+  listPersonDs: IDataSource<IPerson>;
+  latestSingle: any;
+  latestList: any;
+
   constructor(private hdss: HttpDataSourceService) {
+
+    this.onePersonDs = hdss.singleBuilder<IOnePersonQuery, IPerson, number>()
+      .keyResolver(t => t.id)
+      .queryUrl('https://localhost:5001/api/query/onePerson')
+      .beforeRead(_ => {
+        return of({
+          personId: 1
+        })
+      })
+      .createDataSource();
+
+    this.listPersonDs = hdss.listBuilder<IListPersonQuery, IPerson, number>()
+      .keyResolver(t => t.id)
+      .queryUrl('https://localhost:5001/api/query/listPerson')
+      .beforeRead(criteria => {
+        return of({
+          search: "Doe"
+        })
+      })
+      .createDataSource();
+
     const ds = hdss
       .builder<IContact, number>()
       .keyResolver(m => m.id)
@@ -80,10 +120,20 @@ export class AppComponent implements OnInit {
       if (message.type == 'error')
         alert(message.message);
     });
+
+    this.onePersonDs.data$.subscribe(onePerson => {
+      this.latestSingle = onePerson;
+    })
+
+    this.listPersonDs.data$.subscribe(t => {
+      this.latestList = t;
+    })
   }
 
   refresh() {
     this.dataSource.refresh();
+    this.onePersonDs.refresh();
+    this.listPersonDs.refresh();
   }
 
   echoCommand() {

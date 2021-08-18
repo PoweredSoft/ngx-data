@@ -4,7 +4,7 @@ import { Observable, of } from "rxjs";
 import { map, switchMap } from "rxjs/operators";
 import { BaseHttpDataSourceOptionsBuilder } from "./BaseHttpDataSourceOptionsBuilder";
 
-export class SingleDataSourceOptionsBuilder<TQuery, TModel, TKey> 
+export class ListDataSourceOptionsBuilder<TQuery, TModel, TKey> 
     extends BaseHttpDataSourceOptionsBuilder<TModel, TKey>
 {
     private _beforeRead: (query: IQueryCriteria) => Observable<TQuery>;
@@ -22,18 +22,18 @@ export class SingleDataSourceOptionsBuilder<TQuery, TModel, TKey>
         this._query = {
             adapter: {
                 handle: (query: IQueryCriteria) => {
-                    const finalBeforeRead = this._beforeRead || ((query: IQueryCriteria) => of(<TQuery>{}));
+                    const finalBeforeRead = this._beforeRead || ((_: IQueryCriteria) => of(<TQuery>{}));
                     return finalBeforeRead(query)
                         .pipe(
                             switchMap(finalQuery => {
-                                return this.http.get<TModel>(url, {
+                                return this.http.get<TModel[]>(url, {
                                     params: this.convertToParams(finalQuery)
                                 }).pipe(
                                     map(result => {
                                         return <IQueryExecutionResult<TModel> & IQueryExecutionGroupResult<TModel>>
                                         {
-                                            totalRecords: result == null ? 0 : 1,
-                                            data: [result]
+                                            totalRecords: result.length,
+                                            data: result
                                         };
                                     })
                                 )
@@ -62,12 +62,12 @@ export class SingleDataSourceOptionsBuilder<TQuery, TModel, TKey>
                     return finalBeforeRead(query)
                         .pipe(
                             switchMap(finalQuery => {
-                                return this.http.post<TModel>(url, finalQuery).pipe(
+                                return this.http.post<TModel[]>(url, finalQuery).pipe(
                                     map(result => {
                                         return <IQueryExecutionResult<TModel> & IQueryExecutionGroupResult<TModel>>
                                         {
-                                            totalRecords: result == null ? 0 : 1,
-                                            data: [result]
+                                            totalRecords: result.length,
+                                            data: result
                                         };
                                     })
                                 )
@@ -80,7 +80,7 @@ export class SingleDataSourceOptionsBuilder<TQuery, TModel, TKey>
         return this;
     }
 
-    public queryHandler(queryHandler: (query: IQueryCriteria) => Observable<TModel>) {
+    public queryHandler(queryHandler: (query: IQueryCriteria) => Observable<TModel[]>) {
         this._query = {
             adapter: {
                 handle: (query: TQuery) => {
@@ -91,8 +91,8 @@ export class SingleDataSourceOptionsBuilder<TQuery, TModel, TKey>
                                 return queryHandler(finalQuery).pipe(
                                     map(result => {
                                         return <IQueryExecutionResult<TModel> & IQueryExecutionGroupResult<TModel>>{
-                                            totalRecords: result == null ? 0 : 1,
-                                            data: [result]
+                                            totalRecords: result.length,
+                                            data: result
                                         };
                                     })
                                 )
