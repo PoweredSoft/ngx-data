@@ -91,7 +91,7 @@ export abstract class BaseHttpDataSourceOptionsBuilder<TModel, TKey> {
 
     public addCommandByCallback<TCommand, TCommandResult>(name: string, commandHandler: (command: TCommand) => Observable<TCommandResult>, resolveCommandModel?: (event: IResolveCommandModelEvent<TModel>) => Observable<TCommand & any>) {
         const handleWrapper = command => {
-            return commandHandler(command).pipe(catchError(err => this._handleErrorPipe.bind(this)));
+            return commandHandler(command).pipe(catchError(this._handleErrorPipe.bind(this)));
         };
 
         this._commands[name] = <IDataSourceCommandAdapterOptions<TModel>>{

@@ -1,6 +1,6 @@
 {
   "name": "@poweredsoft/ngx-data",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "peerDependencies": {
     "@angular/common": "^8.2.4",
     "@angular/core": "^8.2.4",
